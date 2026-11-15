@@ -1,0 +1,147 @@
+@{
+    ViewBag.Title = "Preferences";
+    var categories = new[] { "Dessert", "Main Course", "Starter", "Breakfast", "Snack", "Drink", "Vegan", "Baking" };
+    var currentCsv = ViewBag.PreferredCategoriesCsv as string ?? "";
+    var current = new HashSet<string>(currentCsv.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()));
+    var currentAvatar = ViewBag.ProfileImageUrl as string ?? "";
+}
+<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+    <h1 class="font-display font-black text-5xl leading-none mb-2">Profile &amp; Preferences</h1>
+    <p class="text-smoke mb-8">Personalize your public chef identity and recommendations.</p>
+
+    <form id="settingsForm" class="space-y-8">
+        <!-- Profile Picture Section -->
+        <section class="bg-cream border-2 border-ink rounded-2xl shadow-book p-6 space-y-5">
+            <h2 class="font-display font-bold text-2xl rule-doodle inline-block">Profile Photo</h2>
+            <p class="text-xs text-smoke">Upload a photo to be shown on your recipes, comments, and profile.</p>
+
+            <div class="flex items-center gap-6">
+                <div class="relative w-24 h-24 rounded-full border-4 border-ink bg-blush overflow-hidden shadow-book-sm shrink-0">
+                    <img id="avatarPreview"
+                         src="@(string.IsNullOrEmpty(currentAvatar) ? "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23C4451C'><circle cx='12' cy='8' r='4'/><path d='M20 21a8 8 0 1 0-16 0'/></svg>" : currentAvatar)"
+                         alt="Profile preview"
+                         class="w-full h-full object-cover" />
+                </div>
+                <div class="space-y-2">
+                    <input type="file" id="avatarFileInput" accept="image/*" class="hidden" />
+                    <button type="button" id="choosePhotoBtn" class="bg-parchment hover:bg-blush font-bold text-sm px-4 py-2 border-2 border-ink rounded-full shadow-book-sm transition">
+                        Choose photo...
+                    </button>
+                    <input type="hidden" name="ProfileImageUrl" id="profileImageUrlInput" value="@currentAvatar" />
+                    <div id="avatarUploadStatus" class="text-xs font-mono text-smoke">JPG, PNG, or WEBP up to 5MB</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Profile Details Section -->
+        <section class="bg-cream border-2 border-ink rounded-2xl shadow-book p-6 space-y-5">
+            <h2 class="font-display font-bold text-2xl rule-doodle inline-block">Public Info</h2>
+
+            <label class="block">
+                <span class="font-mono text-xs uppercase tracking-widest text-ember">Display name</span>
+                <input name="DisplayName" value="@ViewBag.DisplayName"
+                       class="mt-1 w-full bg-parchment border-2 border-ink rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-ember" />
+            </label>
+            <label class="block">
+                <span class="font-mono text-xs uppercase tracking-widest text-ember">Bio</span>
+                <textarea name="Bio" rows="3" class="mt-1 w-full bg-parchment border-2 border-ink rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-ember resize-none">@ViewBag.Bio</textarea>
+            </label>
+        </section>
+
+        <!-- Preferences Section -->
+        <section class="bg-cream border-2 border-ink rounded-2xl shadow-book p-6">
+            <h2 class="font-display font-bold text-2xl rule-doodle inline-block mb-2">Favourite categories</h2>
+            <p class="text-xs text-smoke mb-4">We'll prioritise dishes from these.</p>
+            <div class="flex flex-wrap gap-2">
+                @foreach (var cat in categories)
+                {
+                    <label class="cursor-pointer">
+                        <input type="checkbox" name="PreferredCategories" value="@cat" class="peer sr-only" @(current.Contains(cat) ? "checked" : "") />
+                        <span class="inline-block px-4 py-1.5 rounded-full border-2 border-ink text-sm bg-parchment
+                                     peer-checked:bg-ember peer-checked:text-cream peer-checked:shadow-book-sm transition">@cat</span>
+                    </label>
+                }
+            </div>
+        </section>
+
+        <div class="flex justify-end">
+            <button type="submit" id="saveBtn" class="bg-ember text-cream font-bold px-8 py-3 rounded-full border-2 border-ink shadow-book hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-none transition">
+                Save settings
+            </button>
+        </div>
+    </form>
+</div>
+@section Scripts {
+    <script>
+const fileInput = document.getElementById('avatarFileInput');
+const chooseBtn = document.getElementById('choosePhotoBtn');
+const preview = document.getElementById('avatarPreview');
+const statusText = document.getElementById('avatarUploadStatus');
+const avatarUrlInput = document.getElementById('profileImageUrlInput');
+
+chooseBtn.onclick = () => fileInput.click();
+
+fileInput.onchange = async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    preview.src = URL.createObjectURL(file);
+    statusText.textContent = 'Uploading photo...';
+    statusText.className = 'text-xs font-mono text-ember';
+
+    const fd = new FormData();
+    fd.append('avatar', file);
+    const csrf = RE.csrf();
+    if (csrf) fd.append('__RequestVerificationToken', csrf);
+
+    try {
+        const res = await fetch('/Account/UploadProfilePicture', {
+            method: 'POST',
+            body: fd,
+            credentials: 'same-origin'
+        });
+        const data = await res.json();
+        if (data.success && data.url) {
+            avatarUrlInput.value = data.url;
+            preview.src = data.url;
+            statusText.textContent = 'Profile photo uploaded!';
+            statusText.className = 'text-xs font-mono text-moss';
+            RE.toast('Photo uploaded successfully');
+        } else {
+            statusText.textContent = data.error || 'Failed to upload photo.';
+            statusText.className = 'text-xs font-mono text-ember';
+            RE.toast(data.error || 'Photo upload failed', 'error');
+        }
+    } catch (e) {
+        statusText.textContent = 'Upload error. Please try again.';
+        statusText.className = 'text-xs font-mono text-ember';
+        RE.toast('Photo upload failed', 'error');
+    }
+};
+
+document.getElementById('settingsForm').onsubmit = async e => {
+    e.preventDefault();
+    const f = e.target;
+    const csv = [...f.querySelectorAll('input[name="PreferredCategories"]:checked')].map(i => i.value).join(',');
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+
+    const r = await RE.post('/Account/UpdatePreferences', {
+        DisplayName: f.DisplayName.value,
+        Bio: f.Bio.value,
+        ProfileImageUrl: avatarUrlInput.value,
+        PreferredCategoriesCsv: csv
+    });
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save settings';
+
+    if (r.success) {
+        RE.toast('Profile & preferences saved!');
+        setTimeout(() => location.reload(), 600);
+    } else {
+        RE.toast('Could not save settings', 'error');
+    }
+};
+    </script>
+}

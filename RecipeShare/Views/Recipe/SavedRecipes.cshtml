@@ -1,0 +1,27 @@
+﻿@{ ViewBag.Title = "Saved recipes"; }
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <h1 class="font-display font-black text-5xl leading-none mb-8">Saved</h1>
+    <div id="grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+</div>
+@section Scripts {
+    <script>
+fetch('/Recipe/GetSavedRecipes', { credentials: 'same-origin' })
+    .then(r => r.json())
+    .then(items => {
+        document.getElementById('grid').innerHTML = items.length
+            ? items.map(r => `
+                <a href="/Recipe/Details/${r.id}" class="recipe-card block bg-cream border-2 border-ink rounded-2xl overflow-hidden shadow-book-sm">
+                    <div class="aspect-[4/3] bg-blush">
+                        <img src="${r.primaryImage || 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'><rect fill=\'%23E8C9B4\' width=\'400\' height=\'300\'/><text fill=\'%23C4451C\' font-family=\'sans-serif\' font-size=\'20\' font-weight=\'bold\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\'>Culinary Dish</text></svg>'}" class="w-full h-full object-cover" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'><rect fill=\'%23E8C9B4\' width=\'400\' height=\'300\'/><text fill=\'%23C4451C\' font-family=\'sans-serif\' font-size=\'20\' font-weight=\'bold\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\'>Culinary Dish</text></svg>'" />
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-display font-bold text-xl">${r.title}</h3>
+                        <div class="font-mono text-xs text-smoke mt-1">by ${r.author}</div>
+                    </div>
+                </a>`).join('')
+            : `<div class="col-span-full text-center font-mono text-smoke py-16 border-2 border-dashed border-ink rounded-xl">
+                Nothing saved yet. Tap <span class="text-ember">+  Save</span> on any recipe.
+            </div>`;
+    });
+    </script>
+}

@@ -1,0 +1,260 @@
+@{
+    ViewBag.Title = "Recipe";
+    var id = (int)ViewBag.RecipeId;
+}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8" id="recipeApp" data-id="@id">
+    <div id="loader" class="flex justify-center py-32"><div class="spinner"></div></div>
+    <div id="content" class="hidden fade-up"></div>
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox" class="fixed inset-0 z-[200] bg-ink/95 hidden items-center justify-center p-4">
+    <button id="lbClose" class="absolute top-6 right-6 text-cream hover:text-ember text-4xl leading-none">X</button>
+    <img id="lbImg" src="" alt="" class="max-h-[85vh] max-w-full rounded-xl border-4 border-cream shadow-book" />
+</div>
+
+@section Scripts {
+    <script>
+(async function load() {
+    const id = document.getElementById('recipeApp').dataset.id;
+    const res = await fetch(`/Recipe/GetDetails/${id}`, { credentials: 'same-origin' });
+    const r = await res.json();
+    if (r.error) { 
+        document.getElementById('loader').innerHTML = '<p class="text-ember font-mono">Recipe not found.</p>'; 
+        return; 
+    }
+
+    document.getElementById('loader').classList.add('hidden');
+    const c = document.getElementById('content'); 
+    c.classList.remove('hidden');
+
+    const authorAvatar = r.authorProfileImageUrl || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23C4451C'><circle cx='12' cy='8' r='4'/><path d='M20 21a8 8 0 1 0-16 0'/></svg>";
+
+    c.innerHTML = `
+    <!-- Header -->
+    <nav class="font-mono text-xs uppercase tracking-widest text-smoke mb-4">
+        <a href="/Dashboard" class="hover:text-ember">Feed</a> / <span>${r.category || 'recipe'}</span>
+    </nav>
+
+    <div class="flex items-start justify-between flex-wrap gap-4 mb-6">
+        <div>
+            <div class="tag mb-3">${r.category || 'dish'}</div>
+            <h1 class="font-display font-black text-5xl leading-none">${r.title}</h1>
+            <p class="text-smoke mt-3 max-w-2xl">${r.description || ''}</p>
+            <div class="flex items-center gap-3 mt-4">
+                <a href="/User/Profile/${r.authorId || ''}" class="flex items-center gap-2 hover:text-ember">
+                    <img src="${authorAvatar}" class="w-9 h-9 rounded-full border-2 border-ink object-cover" alt="${r.author}" />
+                    <span class="font-bold text-sm">by ${r.author}</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button id="likeBtn" class="flex items-center gap-2 border-2 border-ink rounded-full px-4 py-2 font-bold shadow-book-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition ${r.userHasLiked ? 'bg-ember text-cream' : 'bg-cream'}">
+                Likes: <span id="likeCount">${r.likeCount}</span>
+            </button>
+            <button id="dislikeBtn" class="flex items-center gap-2 border-2 border-ink rounded-full px-4 py-2 font-bold shadow-book-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition ${r.userHasDisliked ? 'bg-ink text-cream' : 'bg-cream'}">
+                Dislike <span id="dislikeCount">${r.dislikeCount}</span>
+            </button>
+            <button id="saveBtn" class="flex items-center gap-2 border-2 border-ink rounded-full px-4 py-2 font-bold shadow-book-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition ${r.isSaved ? 'bg-moss text-cream' : 'bg-cream'}">
+                ${r.isSaved ? 'Saved' : '+ Save'}
+            </button>
+        </div>
+    </div>
+
+    <!-- Image gallery -->
+    ${r.images && r.images.length ? `
+    <div class="grid grid-cols-3 gap-3 mb-10">
+        ${r.images.map((img, i) => `
+            <button class="lightbox-trigger ${i === 0 ? 'col-span-3 aspect-[16/9]' : 'aspect-square'} bg-blush border-2 border-ink rounded-2xl overflow-hidden shadow-book-sm">
+                <img src="${img.imageUrl}" class="w-full h-full object-cover" alt="" />
+            </button>`).join('')}
+    </div>` : ''}
+
+    <!-- Video -->
+    ${r.videoUrl ? `
+    <section class="mb-12">
+        <h2 class="font-display font-bold text-2xl rule-doodle inline-block mb-4">Watch how it's made</h2>
+        <video controls class="w-full rounded-2xl border-2 border-ink shadow-book bg-ink" src="${r.videoUrl}"></video>
+    </section>` : ''}
+
+    <!-- Two col: ingredients + steps -->
+    <div class="grid lg:grid-cols-[380px_1fr] gap-10">
+
+        <!-- Ingredients Section -->
+        <aside class="lg:sticky lg:top-24 self-start">
+            <div class="bg-cream border-2 border-ink rounded-2xl shadow-book p-6">
+                <div class="flex items-baseline justify-between mb-4 border-b-2 border-ink/10 pb-3">
+                    <div>
+                        <h2 class="font-display font-bold text-2xl">Ingredients</h2>
+                        <span class="text-[11px] font-mono text-smoke">Check items as you prep</span>
+                    </div>
+                    <span class="tag bg-ember text-cream">${r.ingredients ? r.ingredients.length : 0} items</span>
+                </div>
+
+                <div class="space-y-3">
+                    ${r.ingredients ? r.ingredients.map(i => {
+                        const qty = i.quantity ? i.quantity.trim() : '';
+                        const unit = i.unit ? i.unit.trim() : '';
+                        const weight = i.weight ? i.weight.trim() : '';
+                        const name = i.name ? i.name.trim() : '';
+
+                        return `
+                        <div class="ingredient-row p-3 rounded-xl border border-ink/15 bg-parchment hover:border-ink transition">
+                            <label class="flex items-start gap-3 cursor-pointer">
+                                <input type="checkbox" class="mt-1 w-4 h-4 accent-ember rounded cursor-pointer shrink-0" />
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-bold text-base text-ink flex items-center justify-between gap-2">
+                                        <span>${name}</span>
+                                        ${weight ? `<span class="tag text-[10px] bg-cream font-mono font-normal">${weight}</span>` : ''}
+                                    </div>
+                                    <div class="flex items-center gap-2 mt-1 font-mono text-xs">
+                                        ${qty ? `<span class="bg-cream px-2 py-0.5 rounded border border-ink/20 font-bold text-ink">Qty: ${qty}</span>` : ''}
+                                        ${unit ? `<span class="text-ember font-medium italic">(${unit})</span>` : ''}
+                                    </div>
+                                </div>
+                            </label>
+                        </div>`;
+                    }).join('') : '<p class="text-smoke text-sm font-mono">No ingredients listed.</p>'}
+                </div>
+            </div>
+        </aside>
+
+        <!-- Steps -->
+        <section>
+            <h2 class="font-display font-bold text-3xl rule-doodle inline-block mb-6">Method</h2>
+            <ol class="space-y-6">
+                ${r.steps ? r.steps.map(s => `
+                <li class="flex gap-4">
+                    <div class="step-badge">${s.stepNumber}</div>
+                    <p class="pt-2 text-ink leading-relaxed">${s.instruction}</p>
+                </li>`).join('') : '<p class="text-smoke text-sm font-mono">No steps listed.</p>'}
+            </ol>
+        </section>
+    </div>
+
+    <!-- Comments -->
+    <section class="mt-16 pt-10 border-t-2 border-dashed border-ink">
+        <h2 class="font-display font-bold text-3xl rule-doodle inline-block mb-6">Cook's notes</h2>
+
+        <form id="commentForm" class="mb-8">
+            <textarea id="commentInput" rows="3" placeholder="Did you make it? How was it?"
+                class="w-full bg-cream border-2 border-ink rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-ember resize-none"></textarea>
+            <div class="flex justify-end mt-2">
+                <button type="submit" class="bg-ember text-cream font-bold px-6 py-2 rounded-full border-2 border-ink shadow-book-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition">
+                    Post note
+                </button>
+            </div>
+        </form>
+
+        <ul id="commentList" class="space-y-4">
+            ${r.comments && r.comments.length ? r.comments.map(cm => {
+                const commentAvatar = cm.profileImageUrl || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23C4451C'><circle cx='12' cy='8' r='4'/><path d='M20 21a8 8 0 1 0-16 0'/></svg>";
+                return `
+                <li class="flex gap-3">
+                    <img src="${commentAvatar}" class="w-9 h-9 rounded-full border-2 border-ink shrink-0 object-cover" alt="" />
+                    <div class="flex-1">
+                        <div class="flex items-baseline gap-2">
+                            <span class="font-bold text-sm">${cm.displayName}</span>
+                            <span class="font-mono text-xs text-smoke">${RE.timeAgo(cm.createdAt)}</span>
+                        </div>
+                        <p class="text-sm mt-1">${cm.content}</p>
+                    </div>
+                </li>`;
+            }).join('') : `<li id="noCommentsMsg" class="text-sm text-smoke font-mono">No notes yet - be the first to add one.</li>`}
+        </ul>
+    </section>`;
+
+    wire();
+})();
+
+function wire() {
+    const id = document.getElementById('recipeApp').dataset.id;
+    const $ = s => document.querySelector(s);
+
+    $('#likeBtn').onclick = async () => {
+        const r = await RE.post('/Recipe/Rate', { recipeId: id, isLike: true });
+        if (r.success) {
+            $('#likeCount').textContent = r.likeCount;
+            $('#dislikeCount').textContent = r.dislikeCount;
+            $('#likeBtn').classList.add('bg-ember', 'text-cream');
+            $('#dislikeBtn').classList.remove('bg-ink', 'text-cream');
+            $('#dislikeBtn').classList.add('bg-cream');
+        }
+    };
+    $('#dislikeBtn').onclick = async () => {
+        const r = await RE.post('/Recipe/Rate', { recipeId: id, isLike: false });
+        if (r.success) {
+            $('#likeCount').textContent = r.likeCount;
+            $('#dislikeCount').textContent = r.dislikeCount;
+            $('#dislikeBtn').classList.add('bg-ink', 'text-cream');
+            $('#likeBtn').classList.remove('bg-ember', 'text-cream');
+            $('#likeBtn').classList.add('bg-cream');
+        }
+    };
+    $('#saveBtn').onclick = async () => {
+        const isSaved = $('#saveBtn').classList.contains('bg-moss');
+        const r = await RE.post(isSaved ? '/Recipe/Unsave' : '/Recipe/Save', { recipeId: id });
+        if (r.success) {
+            if (isSaved) {
+                $('#saveBtn').classList.remove('bg-moss', 'text-cream');
+                $('#saveBtn').classList.add('bg-cream');
+                $('#saveBtn').textContent = '+ Save';
+                RE.toast('Removed from saved');
+            } else {
+                $('#saveBtn').classList.add('bg-moss', 'text-cream');
+                $('#saveBtn').classList.remove('bg-cream');
+                $('#saveBtn').textContent = 'Saved';
+                RE.toast('Saved to your cookbook');
+            }
+        }
+    };
+    $('#commentForm').onsubmit = async e => {
+        e.preventDefault();
+        const content = $('#commentInput').value.trim();
+        if (!content) return;
+        const r = await RE.post('/Recipe/Comment', { recipeId: id, content });
+        if (r.success) {
+            $('#commentInput').value = '';
+            const noMsg = document.getElementById('noCommentsMsg');
+            if (noMsg) noMsg.remove();
+            const list = document.getElementById('commentList');
+            const newComment = document.createElement('li');
+            newComment.className = 'flex gap-3 fade-up';
+            const userAvatar = r.profileImageUrl || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23C4451C'><circle cx='12' cy='8' r='4'/><path d='M20 21a8 8 0 1 0-16 0'/></svg>";
+            newComment.innerHTML = `
+                <img src="${userAvatar}" class="w-9 h-9 rounded-full border-2 border-ink shrink-0 object-cover" alt="" />
+                <div class="flex-1">
+                    <div class="flex items-baseline gap-2">
+                        <span class="font-bold text-sm">${r.displayName}</span>
+                        <span class="font-mono text-xs text-smoke">just now</span>
+                    </div>
+                    <p class="text-sm mt-1">${r.content}</p>
+                </div>`;
+            list.prepend(newComment);
+            RE.toast('Note posted!');
+        } else {
+            RE.toast(r.error || 'Could not post note', 'error');
+        }
+    };
+
+    document.querySelectorAll('.lightbox-trigger').forEach(t => {
+        t.onclick = () => {
+            $('#lbImg').src = t.querySelector('img').src;
+            $('#lightbox').classList.remove('hidden');
+            $('#lightbox').classList.add('flex');
+        };
+    });
+    $('#lbClose').onclick = () => {
+        $('#lightbox').classList.add('hidden');
+        $('#lightbox').classList.remove('flex');
+    };
+    $('#lightbox').onclick = (e) => {
+        if (e.target.id === 'lightbox') {
+            $('#lightbox').classList.add('hidden');
+            $('#lightbox').classList.remove('flex');
+        }
+    };
+}
+    </script>
+}

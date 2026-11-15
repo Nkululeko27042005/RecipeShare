@@ -1,0 +1,31 @@
+﻿@{ ViewBag.Title = "My recipes"; }
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-end justify-between mb-8">
+        <h1 class="font-display font-black text-5xl leading-none">My recipes</h1>
+        <a href="/Recipe/Create" class="bg-ember text-cream font-bold px-6 py-3 rounded-full border-2 border-ink shadow-book-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition">+ New</a>
+    </div>
+    <div id="grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+</div>
+@section Scripts {
+    <script>
+fetch('/Recipe/GetMyRecipes', { credentials: 'same-origin' })
+    .then(r => r.json())
+    .then(items => {
+        document.getElementById('grid').innerHTML = items.length
+            ? items.map(r => `
+                <a href="/Recipe/Details/${r.id}" class="recipe-card block bg-cream border-2 border-ink rounded-2xl overflow-hidden shadow-book-sm">
+                    <div class="aspect-[4/3] bg-blush">
+                        <img src="${r.primaryImage || 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'><rect fill=\'%23E8C9B4\' width=\'400\' height=\'300\'/><text fill=\'%23C4451C\' font-family=\'sans-serif\' font-size=\'20\' font-weight=\'bold\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\'>Culinary Dish</text></svg>'}" class="w-full h-full object-cover" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'><rect fill=\'%23E8C9B4\' width=\'400\' height=\'300\'/><text fill=\'%23C4451C\' font-family=\'sans-serif\' font-size=\'20\' font-weight=\'bold\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\'>Culinary Dish</text></svg>'" />
+                    </div>
+                    <div class="p-4">
+                        <div class="tag mb-2">${r.category || 'Dish'}</div>
+                        <h3 class="font-display font-bold text-xl">${r.title}</h3>
+                        <div class="font-mono text-xs text-smoke mt-2">Likes:  ${r.likeCount}</div>
+                    </div>
+                </a>`).join('')
+            : `<div class="col-span-full text-center font-mono text-smoke py-16 border-2 border-dashed border-ink rounded-xl">
+                No recipes yet. <a href="/Recipe/Create" class="text-ember underline">Post your first -></a>
+            </div>`;
+    });
+    </script>
+}

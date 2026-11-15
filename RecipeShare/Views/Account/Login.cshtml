@@ -1,0 +1,111 @@
+﻿@{
+    Layout = null;
+    ViewBag.Title = "Sign in";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Sign in  -  RecipE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@400;500;700&family=DM+Mono&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { theme: { extend: { colors: { parchment:'#F4EBD9', ink:'#1E1B16', ember:'#C4451C', saffron:'#D9A441', moss:'#4A5D3A', blush:'#E8C9B4', smoke:'#8A8175', cream:'#FBF6EB' },
+            fontFamily:{ display:['"Playfair Display"','serif'], body:['"DM Sans"','sans-serif'], mono:['"DM Mono"','monospace'] },
+            boxShadow:{ book:'6px 6px 0 0 #1E1B16', 'book-sm':'3px 3px 0 0 #1E1B16' } } } }
+    </script>
+</head>
+<body class="bg-parchment font-body text-ink min-h-screen grid lg:grid-cols-2">
+
+    <!-- Left: hero illustration / cover art -->
+    <aside class="relative hidden lg:flex flex-col justify-between p-12 bg-ink text-cream overflow-hidden">
+        <div class="absolute -top-20 -right-20 w-96 h-96 rounded-full bg-ember/30 blur-3xl"></div>
+        <div class="absolute bottom-0 left-0 w-72 h-72 rounded-full bg-saffron/20 blur-3xl"></div>
+
+        <div class="relative">
+            <div class="font-display font-black text-5xl leading-none">Recip<span class="text-ember">E</span></div>
+            <div class="mt-2 font-mono text-xs uppercase tracking-[.3em] text-saffron">a shared cookbook</div>
+        </div>
+
+        <blockquote class="relative max-w-md">
+            <p class="font-display italic text-3xl leading-snug">"No one who cooks, cooks alone. Even at her most solitary, a cook in the kitchen is surrounded by generations of cooks past."</p>
+            <cite class="block mt-4 font-mono text-xs uppercase tracking-widest text-smoke"> -  Laurie Colwin</cite>
+        </blockquote>
+
+        <div class="relative grid grid-cols-3 gap-3 opacity-80">
+            <div class="aspect-square rounded-lg bg-cream/10 border border-cream/20 flex items-center justify-center font-mono text-xs text-saffron">Bake</div>
+            <div class="aspect-square rounded-lg bg-cream/10 border border-cream/20 flex items-center justify-center font-mono text-xs text-ember">Roast</div>
+            <div class="aspect-square rounded-lg bg-cream/10 border border-cream/20 flex items-center justify-center font-mono text-xs text-moss">Simmer</div>
+        </div>
+    </aside>
+
+    <!-- Right: form -->
+    <div class="flex items-center justify-center p-6 sm:p-12">
+        <div class="w-full max-w-sm">
+            <div class="lg:hidden font-display font-black text-4xl mb-8">Recip<span class="text-ember">E</span></div>
+
+            <h1 class="font-display font-bold text-4xl mb-1">Welcome back.</h1>
+            <p class="text-smoke mb-8">The stove's been kept warm for you.</p>
+
+            <form id="loginForm" class="space-y-4">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
+
+                <label class="block">
+                    <span class="font-mono text-xs uppercase tracking-widest text-ember">Email</span>
+                    <input name="Email" type="email" required autocomplete="email"
+                           class="mt-1 w-full bg-cream border-2 border-ink rounded-lg px-3 py-2.5 font-body focus:outline-none focus:ring-2 focus:ring-ember" />
+                </label>
+
+                <label class="block">
+                    <span class="font-mono text-xs uppercase tracking-widest text-ember">Password</span>
+                    <input name="Password" type="password" required autocomplete="current-password"
+                           class="mt-1 w-full bg-cream border-2 border-ink rounded-lg px-3 py-2.5 font-body focus:outline-none focus:ring-2 focus:ring-ember" />
+                </label>
+
+                <button type="submit" class="w-full bg-ember text-cream font-bold py-3 rounded-lg border-2 border-ink shadow-book hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-none transition">
+                    Sign in
+                </button>
+
+                <p id="loginError" class="text-ember text-sm text-center hidden"></p>
+            </form>
+
+            <p class="mt-8 text-center text-sm">
+                New to RecipE?
+                <a href="/Account/Register" class="font-bold underline decoration-ember decoration-2 underline-offset-4 hover:text-ember">Create an account</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+    document.getElementById('loginForm').addEventListener('submit', async e => {
+        e.preventDefault();
+        const form = e.target, btn = form.querySelector('button');
+        btn.disabled = true; btn.textContent = 'Signing in...';
+        const errEl = document.getElementById('loginError');
+        errEl.classList.add('hidden');
+
+        try {
+            const formData = new FormData(form);
+            const res = await fetch('/Account/Login', { 
+                method: 'POST', 
+                body: formData, 
+                credentials: 'same-origin' 
+            });
+            const data = await res.json();
+            if (data.success) {
+                window.location.href = data.redirectUrl || '/Dashboard';
+            } else {
+                errEl.textContent = data.error || 'Wrong email or password.';
+                errEl.classList.remove('hidden');
+                btn.disabled = false; btn.textContent = 'Sign in';
+            }
+        } catch (err) {
+            errEl.textContent = 'An error occurred. Please try again.';
+            errEl.classList.remove('hidden');
+            btn.disabled = false; btn.textContent = 'Sign in';
+        }
+    });
+    </script>
+</body>
+</html>

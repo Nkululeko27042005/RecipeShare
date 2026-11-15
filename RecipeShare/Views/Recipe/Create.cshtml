@@ -1,0 +1,288 @@
+@{
+    ViewBag.Title = "New recipe";
+    var categories = new[] { "Dessert", "Main Course", "Starter", "Breakfast", "Snack", "Drink", "Vegan", "Baking" };
+}
+
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+    <nav class="font-mono text-xs uppercase tracking-widest text-smoke mb-4">
+        <a href="/Dashboard" class="hover:text-ember">Feed</a> / <span>new recipe</span>
+    </nav>
+
+    <h1 class="font-display font-black text-5xl leading-none mb-2">Write a recipe.</h1>
+    <p class="text-smoke mb-10">A dish, a story, a set of steps. Take your time.</p>
+
+    <form id="createForm" class="space-y-10" enctype="multipart/form-data">
+
+        <!-- Basic info -->
+        <section class="bg-cream border-2 border-ink rounded-2xl shadow-book p-6 space-y-5">
+            <h2 class="font-display font-bold text-2xl rule-doodle inline-block">The basics</h2>
+
+            <label class="block">
+                <span class="font-mono text-xs uppercase tracking-widest text-ember">Title</span>
+                <input name="Title" required maxlength="200" placeholder="Burnt honey & rosemary cake"
+                       class="mt-1 w-full bg-parchment border-2 border-ink rounded-lg px-3 py-2.5 text-xl font-display font-bold focus:outline-none focus:ring-2 focus:ring-ember" />
+            </label>
+
+            <div class="grid sm:grid-cols-2 gap-4">
+                <label class="block">
+                    <span class="font-mono text-xs uppercase tracking-widest text-ember">Category</span>
+                    <select name="Category" required
+                            class="mt-1 w-full bg-parchment border-2 border-ink rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-ember">
+                        <option value="">- pick one -</option>
+                        @foreach (var c in categories)
+                        {
+                            <option value="@c">@c</option>
+                        }
+                    </select>
+                </label>
+
+                <label class="block">
+                    <span class="font-mono text-xs uppercase tracking-widest text-ember">Video (optional)</span>
+                    <input type="file" name="Video" accept="video/*"
+                           class="mt-1 w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-2 file:border-ink file:bg-ember file:text-cream file:font-bold file:cursor-pointer bg-parchment border-2 border-ink rounded-lg" />
+                </label>
+            </div>
+
+            <label class="block">
+                <span class="font-mono text-xs uppercase tracking-widest text-ember">Description</span>
+                <textarea name="Description" rows="3" maxlength="2000" placeholder="What makes this dish yours?"
+                          class="mt-1 w-full bg-parchment border-2 border-ink rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-ember resize-none"></textarea>
+            </label>
+        </section>
+
+        <!-- Images -->
+        <section class="bg-cream border-2 border-ink rounded-2xl shadow-book p-6">
+            <h2 class="font-display font-bold text-2xl rule-doodle inline-block mb-4">Photos</h2>
+            <div id="imageDrop" class="file-drop rounded-xl p-8 text-center cursor-pointer">
+                <input type="file" name="Images" accept="image/*" multiple class="hidden" id="imageInput" />
+                <div class="text-smoke font-mono text-xs uppercase tracking-widest">Drag photos here or click</div>
+                <div class="font-display text-xl mt-1">Add up to 8 images</div>
+            </div>
+            <div id="imagePreview" class="grid grid-cols-4 gap-3 mt-4"></div>
+        </section>
+
+        <!-- Ingredients with clear labels and guidance -->
+        <section class="bg-cream border-2 border-ink rounded-2xl shadow-book p-6">
+            <div class="flex items-baseline justify-between mb-2">
+                <h2 class="font-display font-bold text-2xl rule-doodle inline-block">Ingredients</h2>
+                <button type="button" id="addIngredient" class="font-mono text-xs uppercase tracking-widest text-ember hover:underline">+ add row</button>
+            </div>
+            <div class="text-xs text-smoke font-mono mb-4 flex flex-wrap gap-4 bg-parchment p-2.5 rounded-lg border border-ink/15">
+                <span><strong>Ingredient:</strong> what it is (e.g. Flour)</span>
+                <span><strong>Qty:</strong> count/number (e.g. 2, 1/2)</span>
+                <span><strong>Unit:</strong> measure (e.g. cups, tbsp, cloves)</span>
+                <span><strong>Weight:</strong> optional (e.g. 250g)</span>
+            </div>
+            <div id="ingredientList" class="space-y-3"></div>
+        </section>
+
+        <!-- Steps -->
+        <section class="bg-cream border-2 border-ink rounded-2xl shadow-book p-6">
+            <div class="flex items-baseline justify-between mb-4">
+                <h2 class="font-display font-bold text-2xl rule-doodle inline-block">Method</h2>
+                <button type="button" id="addStep" class="font-mono text-xs uppercase tracking-widest text-ember hover:underline">+ add step</button>
+            </div>
+            <div id="stepList" class="space-y-3"></div>
+        </section>
+
+        <!-- Submit -->
+        <div class="flex items-center justify-between gap-4">
+            <button type="button" onclick="history.back()" class="font-mono text-xs uppercase tracking-widest text-smoke hover:text-ember"><- cancel</button>
+            <button type="submit" class="bg-ember text-cream font-bold px-8 py-3 rounded-full border-2 border-ink shadow-book hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-none transition">
+                Publish recipe ->
+            </button>
+        </div>
+
+        <p id="formError" class="text-ember text-sm text-center hidden"></p>
+    </form>
+</div>
+
+<!-- Ingredient row template with clear separate fields -->
+<template id="ingredientTemplate">
+    <div class="grid grid-cols-12 gap-2 items-center bg-parchment p-3 rounded-xl border border-ink/20 shadow-sm">
+        <div class="col-span-12 sm:col-span-4">
+            <label class="block text-[10px] font-mono uppercase text-smoke mb-1">Ingredient</label>
+            <input placeholder="e.g. Brown Sugar" class="ing-name w-full bg-cream border-2 border-ink rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ember" />
+        </div>
+        <div class="col-span-4 sm:col-span-2">
+            <label class="block text-[10px] font-mono uppercase text-smoke mb-1">Qty (number)</label>
+            <input placeholder="2" class="ing-qty w-full bg-cream border-2 border-ink rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ember" />
+        </div>
+        <div class="col-span-4 sm:col-span-3">
+            <label class="block text-[10px] font-mono uppercase text-smoke mb-1">Unit (measure)</label>
+            <input placeholder="cups / tbsp" class="ing-unit w-full bg-cream border-2 border-ink rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ember" />
+        </div>
+        <div class="col-span-3 sm:col-span-2">
+            <label class="block text-[10px] font-mono uppercase text-smoke mb-1">Weight</label>
+            <input placeholder="200g" class="ing-weight w-full bg-cream border-2 border-ink rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ember" />
+        </div>
+        <div class="col-span-1 flex justify-center pt-4 sm:pt-4">
+            <button type="button" class="remove-row text-smoke hover:text-ember text-lg font-bold">X</button>
+        </div>
+    </div>
+</template>
+
+<!-- Step row template -->
+<template id="stepTemplate">
+    <div class="flex gap-3 items-start">
+        <div class="step-badge shrink-0" data-step-num></div>
+        <textarea rows="2" placeholder="Describe this step..." class="step-text flex-1 bg-parchment border-2 border-ink rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ember resize-none"></textarea>
+        <button type="button" class="remove-row text-smoke hover:text-ember text-lg font-bold mt-2">X</button>
+    </div>
+</template>
+
+@section Scripts {
+    <script>
+const form = document.getElementById('createForm');
+let selectedFiles = [];
+
+/* ---- Ingredients ---- */
+function addIngredient(v = {}) {
+    const t = document.getElementById('ingredientTemplate').content.cloneNode(true);
+    t.querySelector('.ing-name').value = v.name || '';
+    t.querySelector('.ing-qty').value = v.quantity || '';
+    t.querySelector('.ing-unit').value = v.unit || '';
+    t.querySelector('.ing-weight').value = v.weight || '';
+    t.querySelector('.remove-row').onclick = e => e.target.closest('.grid').remove();
+    document.getElementById('ingredientList').appendChild(t);
+}
+document.getElementById('addIngredient').onclick = () => addIngredient();
+addIngredient({ name: 'Wildflower honey', quantity: '1', unit: 'cup' });
+addIngredient({ name: 'Fresh rosemary', quantity: '2', unit: 'tbsp' });
+addIngredient({ name: 'All-purpose flour', quantity: '2', unit: 'cups', weight: '250g' });
+
+/* ---- Steps ---- */
+function renumberSteps() {
+    [...document.querySelectorAll('#stepList .step-badge')].forEach((b, i) => b.textContent = i + 1);
+}
+function addStep(v = '') {
+    const t = document.getElementById('stepTemplate').content.cloneNode(true);
+    t.querySelector('.step-text').value = v;
+    t.querySelector('.remove-row').onclick = e => { e.target.closest('.flex').remove(); renumberSteps(); };
+    document.getElementById('stepList').appendChild(t);
+    renumberSteps();
+}
+document.getElementById('addStep').onclick = () => addStep();
+addStep(); addStep();
+
+/* ---- Image upload ---- */
+const drop = document.getElementById('imageDrop');
+const input = document.getElementById('imageInput');
+drop.onclick = () => input.click();
+['dragover','dragenter'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('dragover'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('dragover'); }));
+drop.addEventListener('drop', e => { 
+    if (e.dataTransfer && e.dataTransfer.files) {
+        selectedFiles = [...selectedFiles, ...Array.from(e.dataTransfer.files)].slice(0, 8);
+        previewImages(); 
+    }
+});
+input.onchange = () => {
+    if (input.files) {
+        selectedFiles = [...selectedFiles, ...Array.from(input.files)].slice(0, 8);
+        previewImages();
+    }
+};
+
+function previewImages() {
+    const wrap = document.getElementById('imagePreview');
+    wrap.innerHTML = '';
+    selectedFiles.forEach((f, i) => {
+        const url = URL.createObjectURL(f);
+        wrap.insertAdjacentHTML('beforeend', `
+            <div class="relative aspect-square border-2 border-ink rounded-lg overflow-hidden bg-blush group">
+                <img src="${url}" class="w-full h-full object-cover" />
+                ${i === 0 ? '<span class="absolute top-1 left-1 tag bg-ember text-cream text-[10px]">cover</span>' : ''}
+            </div>`);
+    });
+}
+
+/* ---- Submit ---- */
+form.onsubmit = async e => {
+    e.preventDefault();
+    const btn = form.querySelector('button[type=submit]');
+    btn.disabled = true; btn.textContent = 'Publishing...';
+
+    const errEl = document.getElementById('formError');
+    errEl.classList.add('hidden');
+
+    try {
+        // 1. Upload images
+        const uploadedImageUrls = [];
+        for (const file of selectedFiles) {
+            const fd = new FormData(); 
+            fd.append('file', file);
+            const csrfToken = RE.csrf();
+            if (csrfToken) fd.append('__RequestVerificationToken', csrfToken);
+            try {
+                const up = await fetch('/Recipe/UploadImage', { method: 'POST', body: fd, credentials: 'same-origin' });
+                const j = await up.json();
+                if (j.url) uploadedImageUrls.push(j.url);
+            } catch (err) { 
+                console.error("Image upload failed", err); 
+            }
+        }
+
+        // 2. Upload video
+        let videoUrl = '';
+        const videoFile = form.querySelector('input[name=Video]').files[0];
+        if (videoFile) {
+            const fd = new FormData(); 
+            fd.append('file', videoFile);
+            const csrfToken = RE.csrf();
+            if (csrfToken) fd.append('__RequestVerificationToken', csrfToken);
+            const up = await fetch('/Recipe/UploadVideo', { method: 'POST', body: fd, credentials: 'same-origin' });
+            const j = await up.json();
+            videoUrl = j.url || '';
+        }
+
+        // 3. Collect ingredients / steps
+        const ingredients = [...document.querySelectorAll('#ingredientList .grid')].map(row => ({
+            name: row.querySelector('.ing-name').value.trim(),
+            quantity: row.querySelector('.ing-qty').value.trim(),
+            unit: row.querySelector('.ing-unit').value.trim(),
+            weight: row.querySelector('.ing-weight').value.trim()
+        })).filter(i => i.name);
+
+        const steps = [...document.querySelectorAll('#stepList textarea')].map(t => t.value.trim()).filter(Boolean);
+
+        if (!steps.length) {
+            errEl.textContent = 'Add at least one step.'; errEl.classList.remove('hidden');
+            btn.disabled = false; btn.textContent = 'Publish recipe ->'; return;
+        }
+
+        // 4. Post recipe using MVC model-binding compatible keys
+        const fd = new FormData();
+        const csrfToken = RE.csrf();
+        if (csrfToken) fd.append('__RequestVerificationToken', csrfToken);
+        fd.append('Title', form.Title.value);
+        fd.append('Description', form.Description.value);
+        fd.append('Category', form.Category.value);
+        fd.append('VideoUrl', videoUrl);
+
+        uploadedImageUrls.forEach(u => fd.append('ImageUrls', u));
+        steps.forEach(s => fd.append('Steps', s));
+        ingredients.forEach((i, idx) => {
+            fd.append(`Ingredients[${idx}].Name`, i.name);
+            fd.append(`Ingredients[${idx}].Quantity`, i.quantity);
+            fd.append(`Ingredients[${idx}].Unit`, i.unit);
+            fd.append(`Ingredients[${idx}].Weight`, i.weight);
+        });
+
+        const res = await fetch('/Recipe/Create', { method: 'POST', body: fd, credentials: 'same-origin' });
+        const json = await res.json();
+        if (json.success) {
+            location.href = `/Recipe/Details/${json.recipeId}`;
+        } else {
+            errEl.textContent = json.errors || 'Could not publish. Try again.';
+            errEl.classList.remove('hidden');
+            btn.disabled = false; btn.textContent = 'Publish recipe ->';
+        }
+    } catch (err) {
+        errEl.textContent = 'An unexpected error occurred. Please try again.';
+        errEl.classList.remove('hidden');
+        btn.disabled = false; btn.textContent = 'Publish recipe ->';
+    }
+};
+    </script>
+}

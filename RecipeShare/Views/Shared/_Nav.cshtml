@@ -1,0 +1,74 @@
+@{
+    var userImg = "/Content/img/default-avatar.svg";
+    var userDisplayName = "Account";
+    if (User.Identity.IsAuthenticated)
+    {
+        userDisplayName = User.Identity.Name.Split('@')[0];
+        try
+        {
+            var db = new RecipeShare.Models.ApplicationDbContext();
+            var uid = Microsoft.AspNet.Identity.IdentityExtensions.GetUserId(User.Identity);
+            var appUser = db.Users.Find(uid);
+            if (appUser != null)
+            {
+                if (!string.IsNullOrEmpty(appUser.DisplayName)) { userDisplayName = appUser.DisplayName; }
+                if (!string.IsNullOrEmpty(appUser.ProfileImageUrl)) { userImg = appUser.ProfileImageUrl; }
+            }
+        }
+        catch { }
+    }
+}
+<nav class="fixed top-0 left-0 right-0 z-50 bg-parchment/90 backdrop-blur border-b-2 border-ink">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+        <!-- Logo -->
+        <a href="/Dashboard" class="flex items-center gap-2 group">
+            <span class="font-display font-black text-2xl tracking-tight">Recip<span class="text-ember">E</span></span>
+            <span class="hidden sm:inline tag group-hover:bg-ember group-hover:text-cream transition">cookbook</span>
+        </a>
+
+        <!-- Search -->
+        <form action="/Recipe/Search" method="get" class="hidden md:flex flex-1 max-w-md mx-6">
+            <div class="relative w-full">
+                <input name="q" type="search" placeholder="Search dishes, ingredients..."
+                       class="w-full bg-cream border-2 border-ink rounded-full px-4 py-2 pr-10 font-body text-sm
+                              focus:outline-none focus:ring-2 focus:ring-ember placeholder:text-smoke">
+                <button type="submit" class="absolute right-3 top-1/2 -translate-y-1/2 text-ink hover:text-ember">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="7" />
+                        <path d="m20 20-3.5-3.5" />
+                    </svg>
+                </button>
+            </div>
+        </form>
+
+        <!-- Right side -->
+        <div class="flex items-center gap-2 sm:gap-3">
+            <a href="/Recipe/Create" class="hidden sm:inline-flex items-center gap-1.5 bg-ember text-cream font-body font-bold text-sm px-4 py-2 rounded-full border-2 border-ink shadow-book-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+                New Recipe
+            </a>
+
+            <!-- User dropdown -->
+            <div class="relative" data-user-menu>
+                <button class="flex items-center gap-2 border-2 border-ink rounded-full pl-1 pr-3 py-1 bg-cream hover:bg-blush transition">
+                    <img src="@userImg"
+                         onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23C4451C\'><circle cx=\'12\' cy=\'8\' r=\'4\'/><path d=\'M20 21a8 8 0 1 0-16 0\'/></svg>'"
+                         class="w-7 h-7 rounded-full object-cover border border-ink" alt="" />
+                    <span class="text-sm font-bold hidden sm:inline">@userDisplayName</span>
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></svg>
+                </button>
+                <div class="absolute right-0 mt-2 w-56 bg-cream border-2 border-ink rounded-xl shadow-book hidden" data-user-menu-panel>
+                    <a href="/User/Profile" class="block px-4 py-2.5 hover:bg-blush rounded-t-lg border-b border-ink/10 text-sm font-medium">My profile</a>
+                    <a href="/Recipe/MyRecipes" class="block px-4 py-2.5 hover:bg-blush border-b border-ink/10 text-sm font-medium">My recipes</a>
+                    <a href="/Recipe/SavedRecipes" class="block px-4 py-2.5 hover:bg-blush border-b border-ink/10 text-sm font-medium">Saved recipes</a>
+                    <a href="/Account/Settings" class="block px-4 py-2.5 hover:bg-blush border-b border-ink/10 text-sm font-medium">Profile &amp; Preferences</a>
+                    @using (Html.BeginForm("Logout", "Account", FormMethod.Post, new { @class = "contents" }))
+                    {
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="w-full text-left px-4 py-2.5 hover:bg-ember hover:text-cream rounded-b-lg text-sm font-bold border-none bg-transparent">Log out</button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>

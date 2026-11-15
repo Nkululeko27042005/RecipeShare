@@ -1,0 +1,61 @@
+﻿@{
+    ViewBag.Title = "Search dishes";
+    var query = ViewBag.Query as string ?? "";
+}
+
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-8">
+        <div class="font-mono text-xs uppercase tracking-widest text-ember mb-1">Search results</div>
+        <h1 class="font-display font-black text-4xl sm:text-5xl">Dishes matching "<span class="text-ember">@query</span>"</h1>
+    </div>
+
+    <div id="searchGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="col-span-full flex justify-center py-16"><div class="spinner"></div></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+(async function() {
+    const q = encodeURIComponent("@query");
+    try {
+        const res = await fetch(`/Recipe/Search?q=${q}`, { 
+            headers: { 'Accept': 'application/json' },
+            credentials: 'same-origin' 
+        });
+        const items = await res.json();
+        const grid = document.getElementById('searchGrid');
+
+        if (!items || !items.length) {
+            grid.innerHTML = `
+                <div class="col-span-full text-center font-mono text-smoke py-16 border-2 border-dashed border-ink rounded-xl">
+                    No dishes found for this query. Try another keyword or <a href="/Recipe/Create" class="text-ember underline">share your own</a>!
+                </div>`;
+            return;
+        }
+
+        grid.innerHTML = items.map(r => `
+            <a href="/Recipe/Details/${r.id}" class="recipe-card block bg-cream border-2 border-ink rounded-2xl overflow-hidden shadow-book-sm">
+                <div class="aspect-[4/3] bg-blush overflow-hidden">
+                    <img src="${r.primaryImage || 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'><rect fill=\'%23E8C9B4\' width=\'400\' height=\'300\'/><text fill=\'%23C4451C\' font-family=\'sans-serif\' font-size=\'20\' font-weight=\'bold\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\'>Culinary Dish</text></svg>'}"
+                         class="w-full h-full object-cover" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'><rect fill=\'%23E8C9B4\' width=\'400\' height=\'300\'/><text fill=\'%23C4451C\' font-family=\'sans-serif\' font-size=\'20\' font-weight=\'bold\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\'>Culinary Dish</text></svg>'" />
+                </div>
+                <div class="p-4">
+                    <div class="tag mb-2">${r.category || 'dish'}</div>
+                    <h3 class="font-display font-bold text-xl leading-tight">${r.title}</h3>
+                    <p class="text-sm text-smoke mt-1 line-clamp-2">${r.description || ''}</p>
+                    <div class="flex items-center gap-3 mt-3 text-xs font-mono uppercase tracking-wider text-smoke">
+                        <span class="flex items-center gap-1"><span class="text-ember">Likes: </span>${r.likeCount ?? 0}</span>
+                        <span class="ml-auto">by ${r.author || 'Chef'}</span>
+                    </div>
+                </div>
+            </a>`).join('');
+    } catch (e) {
+        document.getElementById('searchGrid').innerHTML = `
+            <div class="col-span-full text-center text-ember font-mono py-16">
+                Failed to perform search. Please try again.
+            </div>`;
+    }
+})();
+    </script>
+}

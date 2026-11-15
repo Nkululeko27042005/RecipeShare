@@ -1,0 +1,424 @@
+﻿@{
+    Layout = null;
+    ViewBag.Title = "RecipE  -  a shared cookbook";
+    var showcase = ViewBag.Showcase as List<RecipeShare.Models.ViewModels.RecipeShowcaseItem>;
+    var cookCount = (int)(ViewBag.CookCount ?? 0);
+    var recipeCount = (int)(ViewBag.RecipeCount ?? 0);
+    var likeCount = (int)(ViewBag.LikeCount ?? 0);
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewBag.Title</title>
+    <meta name="description" content="RecipE is a shared cookbook where cooks post dishes, follow each other, and steal the good ones. Post a recipe, save favourites, comment, and cook." />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        parchment: '#F4EBD9', ink: '#1E1B16', ember: '#C4451C',
+                        saffron: '#D9A441', moss: '#4A5D3A', blush: '#E8C9B4',
+                        smoke: '#8A8175', cream: '#FBF6EB'
+                    },
+                    fontFamily: {
+                        display: ['"Playfair Display"', 'serif'],
+                        body: ['"DM Sans"', 'sans-serif'],
+                        mono: ['"DM Mono"', 'monospace']
+                    },
+                    boxShadow: {
+                        book: '6px 6px 0 0 #1E1B16',
+                        'book-sm': '3px 3px 0 0 #1E1B16',
+                        'book-lg': '10px 10px 0 0 #1E1B16'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        .grain {
+            position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: .35;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+            mix-blend-mode: multiply;
+        }
+        .rule-doodle::after {
+            content: ''; display: block; width: 100%; height: 8px; margin-top: .4rem;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 8' preserveAspectRatio='none'%3E%3Cpath d='M0 4 Q 25 0, 50 4 T 100 4 T 150 4 T 200 4' stroke='%23C4451C' stroke-width='2' fill='none'/%3E%3C/svg%3E") no-repeat center/100% 100%;
+        }
+        .marquee { display: flex; width: max-content; animation: scroll 40s linear infinite; }
+        @@keyframes scroll { to { transform: translateX(-50%); } }
+        .fade-up { opacity: 0; transform: translateY(16px); animation: fadeUp .6s ease forwards; }
+        .d1 { animation-delay: .1s; } .d2 { animation-delay: .2s; }
+        .d3 { animation-delay: .3s; } .d4 { animation-delay: .4s; }
+        @@keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+        html { scroll-behavior: smooth; }
+    </style>
+</head>
+<body class="bg-parchment text-ink font-body antialiased selection:bg-ember selection:text-cream overflow-x-hidden">
+
+    <div class="grain"></div>
+
+    <!-- ============================ NAV ============================ -->
+    <header class="fixed top-0 inset-x-0 z-50 bg-parchment/85 backdrop-blur border-b-2 border-ink">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+            <a href="/" class="flex items-center gap-2">
+                <span class="font-display font-black text-2xl tracking-tight">Recip<span class="text-ember">E</span></span>
+                <span class="hidden sm:inline font-mono text-[10px] uppercase tracking-[.2em] border border-ink rounded-full px-2 py-0.5">cookbook</span>
+            </a>
+
+            <nav class="hidden md:flex items-center gap-8 font-body text-sm font-medium">
+                <a href="#how" class="hover:text-ember">How it works</a>
+                <a href="#kitchen" class="hover:text-ember">From the kitchen</a>
+                <a href="#cooks" class="hover:text-ember">The cooks</a>
+            </nav>
+
+            <div class="flex items-center gap-2 sm:gap-3">
+                <a href="/Account/Login" class="font-bold text-sm px-4 py-2 rounded-full hover:text-ember transition">Sign in</a>
+                <a href="/Account/Register" class="inline-flex items-center gap-1.5 bg-ember text-cream font-bold text-sm px-5 py-2 rounded-full border-2 border-ink shadow-book-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition">
+                    Get cooking
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- ============================ HERO ============================ -->
+    <section class="relative pt-32 pb-20 sm:pt-40 sm:pb-28 z-10">
+        <!-- Decorative blobs -->
+        <div class="absolute -top-20 -right-20 w-[28rem] h-[28rem] rounded-full bg-ember/15 blur-3xl -z-10"></div>
+        <div class="absolute top-40 -left-32 w-96 h-96 rounded-full bg-saffron/20 blur-3xl -z-10"></div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-[1.15fr_1fr] gap-12 items-center">
+
+            <div>
+                <div class="fade-up inline-flex items-center gap-2 tag bg-cream mb-6">
+                    <span class="w-2 h-2 rounded-full bg-ember animate-pulse"></span>
+                    now cooking  |  @recipeCount recipes and counting
+                </div>
+
+                <h1 class="fade-up d1 font-display font-black text-6xl sm:text-7xl lg:text-8xl leading-[0.9] tracking-tight">
+                    Cook it.<br>
+                    Post it.<br>
+                    <span class="text-ember italic">Steal it.</span>
+                </h1>
+
+                <p class="fade-up d2 mt-8 text-lg sm:text-xl text-smoke max-w-xl leading-relaxed">
+                    RecipE is a shared cookbook for people who actually cook.
+                    Post a dish, follow a cook, save what looks good  -  and never lose
+                    your grandmother's cake recipe again.
+                </p>
+
+                <div class="fade-up d3 mt-10 flex flex-wrap gap-3">
+                    <a href="/Account/Register" class="inline-flex items-center gap-2 bg-ember text-cream font-bold text-lg px-8 py-4 rounded-full border-2 border-ink shadow-book hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-none transition">
+                        Start your cookbook
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                    </a>
+                    <a href="#kitchen" class="inline-flex items-center gap-2 bg-cream text-ink font-bold text-lg px-8 py-4 rounded-full border-2 border-ink hover:bg-blush transition">
+                        Browse recipes
+                    </a>
+                </div>
+
+                <!-- Stats -->
+                <div class="fade-up d4 mt-12 grid grid-cols-3 gap-6 max-w-md">
+                    <div>
+                        <div class="font-display font-black text-3xl text-ember">@cookCount</div>
+                        <div class="font-mono text-[10px] uppercase tracking-widest text-smoke mt-1">cooks</div>
+                    </div>
+                    <div>
+                        <div class="font-display font-black text-3xl text-ember">@recipeCount</div>
+                        <div class="font-mono text-[10px] uppercase tracking-widest text-smoke mt-1">recipes</div>
+                    </div>
+                    <div>
+                        <div class="font-display font-black text-3xl text-ember">@likeCount</div>
+                        <div class="font-mono text-[10px] uppercase tracking-widest text-smoke mt-1">hearts</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hero visual: stacked recipe cards -->
+            <div class="relative fade-up d2 hidden lg:block">
+                <div class="relative w-full max-w-md mx-auto">
+                    <!-- Back card -->
+                    <div class="absolute inset-0 bg-moss border-2 border-ink rounded-3xl shadow-book-lg rotate-[-6deg] translate-x-6 translate-y-6"></div>
+                    <div class="absolute inset-0 bg-saffron border-2 border-ink rounded-3xl shadow-book-lg rotate-[4deg] -translate-x-3 translate-y-3"></div>
+
+                    <!-- Front card -->
+                    <div class="relative bg-cream border-2 border-ink rounded-3xl shadow-book-lg overflow-hidden">
+                        <div class="aspect-[4/3] bg-blush relative">
+                            <img src="~/Content/img/hero-dish.jpg" alt="A finished dish"
+                                 class="w-full h-full object-cover"
+                                 onerror="this.style.display='none'; this.parentElement.classList.add('grid','place-items-center'); this.parentElement.innerHTML='<span class=\'font-display italic text-3xl text-ember\'>your dish here</span>';" />
+                            <span class="absolute top-3 left-3 tag bg-ember text-cream">Featured</span>
+                        </div>
+                        <div class="p-5">
+                            <div class="font-mono text-[10px] uppercase tracking-widest text-ember">Dessert</div>
+                            <h3 class="font-display font-bold text-2xl mt-1 leading-tight">Burnt honey & rosemary cake</h3>
+                            <p class="text-sm text-smoke mt-2 line-clamp-2">A sticky, fragrant cake that tastes like a Sunday afternoon. Best served warm.</p>
+                            <div class="flex items-center justify-between mt-4 pt-3 border-t border-ink/10">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-7 h-7 rounded-full bg-ink border-2 border-ink"></div>
+                                    <span class="text-xs font-bold">by Marie</span>
+                                </div>
+                                <div class="font-mono text-xs text-ember">Likes:  142</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Floating tag -->
+                    <div class="absolute -bottom-4 -left-4 bg-ink text-cream font-mono text-xs uppercase tracking-widest px-4 py-2 rounded-full shadow-book-sm rotate-[-4deg]">
+                        6 steps  |  40 min
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================ MARQUEE ============================ -->
+    <section class="py-6 border-y-2 border-ink bg-ink text-cream overflow-hidden z-10 relative">
+        <div class="marquee gap-12 font-display italic text-2xl whitespace-nowrap">
+            <span>Post a dish * Follow a cook * Save a favourite * Leave a note * Cook it again *</span>
+            <span>Post a dish * Follow a cook * Save a favourite * Leave a note * Cook it again *</span>
+            <span>Post a dish * Follow a cook * Save a favourite * Leave a note * Cook it again *</span>
+            <span>Post a dish * Follow a cook * Save a favourite * Leave a note * Cook it again *</span>
+        </div>
+    </section>
+
+    <!-- ============================ HOW IT WORKS ============================ -->
+    <section id="how" class="py-24 z-10 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="max-w-2xl mb-16">
+                <div class="font-mono text-xs uppercase tracking-[.25em] text-ember mb-3">How it works</div>
+                <h2 class="font-display font-black text-5xl sm:text-6xl leading-none">
+                    Three steps<br>to a full cookbook.
+                </h2>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6">
+                <!-- 01 -->
+                <div class="bg-cream border-2 border-ink rounded-2xl p-8 shadow-book-sm hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-book transition">
+                    <div class="font-display font-black text-6xl text-ember">01</div>
+                    <h3 class="font-display font-bold text-2xl mt-4">Post a recipe</h3>
+                    <p class="text-smoke mt-2 leading-relaxed">
+                        Title, category, a few photos, an optional video. Ingredients with
+                        quantities and weight. Steps that renumber themselves as you go.
+                    </p>
+                </div>
+
+                <!-- 02 -->
+                <div class="bg-cream border-2 border-ink rounded-2xl p-8 shadow-book-sm hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-book transition">
+                    <div class="font-display font-black text-6xl text-ember">02</div>
+                    <h3 class="font-display font-bold text-2xl mt-4">Follow & save</h3>
+                    <p class="text-smoke mt-2 leading-relaxed">
+                        Follow cooks whose taste you trust. Save any dish to your own
+                        cookbook. Your feed learns from what you love and who you follow.
+                    </p>
+                </div>
+
+                <!-- 03 -->
+                <div class="bg-cream border-2 border-ink rounded-2xl p-8 shadow-book-sm hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-book transition">
+                    <div class="font-display font-black text-6xl text-ember">03</div>
+                    <h3 class="font-display font-bold text-2xl mt-4">Cook & comment</h3>
+                    <p class="text-smoke mt-2 leading-relaxed">
+                        Made it? Leave a note. Liked it? Heart it. Your dashboard
+                        shows top-liked dishes and rising cooks worth following.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================ FROM THE KITCHEN ============================ -->
+    <section id="kitchen" class="py-24 bg-cream border-y-2 border-ink z-10 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-end justify-between flex-wrap gap-4 mb-12">
+                <div>
+                    <div class="font-mono text-xs uppercase tracking-[.25em] text-ember mb-3">Fresh off the stove</div>
+                    <h2 class="font-display font-black text-5xl sm:text-6xl leading-none rule-doodle inline-block">From the kitchen</h2>
+                </div>
+                <a href="/Account/Register" class="font-mono text-xs uppercase tracking-widest text-ember hover:underline self-end">
+                    See the whole feed ->
+                </a>
+            </div>
+
+            @if (showcase != null && showcase.Any())
+            {
+                <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @foreach (RecipeShare.Models.ViewModels.RecipeShowcaseItem r in showcase)
+                    {
+                        <a href="/Account/Register" class="group block bg-parchment border-2 border-ink rounded-2xl overflow-hidden shadow-book-sm hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-book transition">
+                            <div class="aspect-[4/3] bg-blush overflow-hidden">
+                                @if (!string.IsNullOrEmpty(r.PrimaryImage))
+                                {
+                                    <img src="@r.PrimaryImage" alt="@r.Title" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                                }
+                                else
+                                {
+                                    <div class="w-full h-full grid place-items-center text-smoke font-mono text-xs">no photo yet</div>
+                                }
+                            </div>
+                            <div class="p-4">
+                                <span class="tag">@r.Category</span>
+                                <h3 class="font-display font-bold text-xl mt-2 leading-tight">@r.Title</h3>
+                                <div class="flex items-center justify-between mt-3 font-mono text-xs text-smoke">
+                                    <span>by @r.Author</span>
+                                    <span class="text-ember">Likes:  @r.LikeCount</span>
+                                </div>
+                            </div>
+                        </a>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-16 border-2 border-dashed border-ink rounded-2xl">
+                    <p class="font-display italic text-3xl text-ember">The stove is still warming up.</p>
+                    <p class="text-smoke mt-2">Be the first to post a recipe  -  yours will live here.</p>
+                    <a href="/Account/Register" class="inline-block mt-6 bg-ember text-cream font-bold px-6 py-3 rounded-full border-2 border-ink shadow-book-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition">
+                        Post the first recipe
+                    </a>
+                </div>
+            }
+        </div>
+    </section>
+
+    <!-- ============================ THE COOKS ============================ -->
+    <section id="cooks" class="py-24 z-10 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-16 items-center">
+
+            <div>
+                <div class="font-mono text-xs uppercase tracking-[.25em] text-ember mb-3">For the regulars</div>
+                <h2 class="font-display font-black text-5xl sm:text-6xl leading-none">
+                    A dashboard<br>that knows<br><span class="text-ember italic">your taste.</span>
+                </h2>
+                <p class="text-smoke text-lg mt-6 max-w-md leading-relaxed">
+                    Set a few favourite categories when you sign up. RecipE blends
+                    those with the cooks you follow to build a feed that actually
+                    looks like food you'd make.
+                </p>
+                <ul class="mt-8 space-y-3 text-sm">
+                    <li class="flex items-start gap-3">
+                        <span class="text-ember font-bold mt-0.5">*</span>
+                        <span><strong>Recommended rail</strong>  -  picked from your categories + follow graph.</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-ember font-bold mt-0.5">*</span>
+                        <span><strong>Top liked</strong>  -  the dishes the whole kitchen can't stop making.</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-ember font-bold mt-0.5">*</span>
+                        <span><strong>Rising cooks</strong>  -  the accounts worth following this week.</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-ember font-bold mt-0.5">*</span>
+                        <span><strong>Saved</strong>  -  your own personal cookbook, always one tap away.</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Mock dashboard preview -->
+            <div class="relative">
+                <div class="bg-cream border-2 border-ink rounded-2xl shadow-book-lg p-4 rotate-1">
+                    <!-- Fake window chrome -->
+                    <div class="flex items-center gap-1.5 pb-3 border-b-2 border-ink/10 mb-3">
+                        <div class="w-3 h-3 rounded-full bg-ember border border-ink"></div>
+                        <div class="w-3 h-3 rounded-full bg-saffron border border-ink"></div>
+                        <div class="w-3 h-3 rounded-full bg-moss border border-ink"></div>
+                        <div class="ml-3 flex-1 bg-parchment border border-ink/20 rounded-full px-3 py-1 text-[10px] font-mono text-smoke">recipe.app/dashboard</div>
+                    </div>
+
+                    <!-- Fake feed -->
+                    <div class="font-display font-black text-2xl leading-none mb-3">What's cooking, Marie?</div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="aspect-[4/3] bg-blush border-2 border-ink rounded-lg relative overflow-hidden">
+                            <span class="absolute bottom-1.5 left-1.5 tag bg-cream text-[8px]">Dessert</span>
+                        </div>
+                        <div class="aspect-[4/3] bg-saffron/60 border-2 border-ink rounded-lg relative overflow-hidden">
+                            <span class="absolute bottom-1.5 left-1.5 tag bg-cream text-[8px]">Main</span>
+                        </div>
+                        <div class="aspect-[4/3] bg-moss/50 border-2 border-ink rounded-lg relative overflow-hidden">
+                            <span class="absolute bottom-1.5 left-1.5 tag bg-cream text-[8px]">Vegan</span>
+                        </div>
+                        <div class="aspect-[4/3] bg-ember/60 border-2 border-ink rounded-lg relative overflow-hidden">
+                            <span class="absolute bottom-1.5 left-1.5 tag bg-cream text-[8px]">Breakfast</span>
+                        </div>
+                    </div>
+                    <div class="mt-3 space-y-1.5">
+                        <div class="h-2 bg-ink/10 rounded-full w-3/4"></div>
+                        <div class="h-2 bg-ink/10 rounded-full w-1/2"></div>
+                    </div>
+                </div>
+                <div class="absolute -bottom-4 -right-4 bg-ember text-cream font-mono text-xs uppercase tracking-widest px-4 py-2 rounded-full border-2 border-ink shadow-book-sm rotate-[-3deg]">
+                    your feed, your rules
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================ QUOTE ============================ -->
+    <section class="py-24 bg-ink text-cream border-y-2 border-ink relative z-10 overflow-hidden">
+        <div class="absolute -top-20 -left-20 w-96 h-96 rounded-full bg-ember/30 blur-3xl"></div>
+        <div class="absolute -bottom-32 -right-20 w-[28rem] h-[28rem] rounded-full bg-saffron/20 blur-3xl"></div>
+        <div class="max-w-4xl mx-auto px-6 text-center relative">
+            <div class="font-display italic text-4xl sm:text-6xl leading-[1.1]">
+                "No one who cooks, cooks alone. Even at her most solitary, a cook in the kitchen is surrounded by generations of cooks past."
+            </div>
+            <div class="mt-8 font-mono text-xs uppercase tracking-[.3em] text-saffron"> -  Laurie Colwin</div>
+        </div>
+    </section>
+
+    <!-- ============================ FINAL CTA ============================ -->
+    <section class="py-28 z-10 relative">
+        <div class="max-w-4xl mx-auto px-4 text-center">
+            <h2 class="font-display font-black text-6xl sm:text-7xl leading-[0.95]">
+                Your cookbook<br>is <span class="text-ember italic">empty.</span>
+            </h2>
+            <p class="text-smoke text-lg mt-6 max-w-xl mx-auto">
+                It takes a minute to sign up. Set your categories, follow a cook or two,
+                and start filling it with dishes you actually make.
+            </p>
+            <div class="mt-10 flex flex-wrap justify-center gap-3">
+                <a href="/Account/Register" class="inline-flex items-center gap-2 bg-ember text-cream font-bold text-lg px-10 py-4 rounded-full border-2 border-ink shadow-book hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-none transition">
+                    Create my cookbook
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                </a>
+                <a href="/Account/Login" class="inline-flex items-center gap-2 bg-cream text-ink font-bold text-lg px-10 py-4 rounded-full border-2 border-ink hover:bg-blush transition">
+                    I already cook here
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================ FOOTER ============================ -->
+    <footer class="border-t-2 border-ink bg-cream z-10 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid md:grid-cols-4 gap-8">
+            <div class="md:col-span-2">
+                <div class="font-display font-black text-3xl">Recip<span class="text-ember">E</span></div>
+                <p class="text-sm text-smoke mt-2 max-w-sm">A shared cookbook of everyday flavours. Post a dish. Follow a cook. Steal a recipe.</p>
+            </div>
+            <div class="text-sm space-y-2">
+                <div class="font-mono text-[10px] uppercase tracking-[.25em] text-ember mb-3">Explore</div>
+                <a href="#how" class="block hover:text-ember">How it works</a>
+                <a href="#kitchen" class="block hover:text-ember">From the kitchen</a>
+                <a href="#cooks" class="block hover:text-ember">The cooks</a>
+            </div>
+            <div class="text-sm space-y-2">
+                <div class="font-mono text-[10px] uppercase tracking-[.25em] text-ember mb-3">Account</div>
+                <a href="/Account/Login" class="block hover:text-ember">Sign in</a>
+                <a href="/Account/Register" class="block hover:text-ember">Create account</a>
+            </div>
+        </div>
+        <div class="text-center text-xs font-mono py-4 border-t border-ink/10 text-smoke">
+            (c) @DateTime.UtcNow.Year RecipE  |  made with butter
+        </div>
+    </footer>
+
+</body>
+</html>

@@ -1,0 +1,45 @@
+﻿@{ ViewBag.Title = "Rising cooks"; }
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <h1 class="font-display font-black text-5xl leading-none mb-2">Rising cooks</h1>
+    <p class="text-smoke mb-8">The names worth following this week.</p>
+    <div id="grid" class="grid sm:grid-cols-2 gap-4"></div>
+</div>
+@section Scripts {
+    <script>
+fetch('/User/GetRisingUsers?count=20', { credentials: 'same-origin' })
+    .then(r => r.json())
+    .then(items => {
+        document.getElementById('grid').innerHTML = items.length ? items.map(u => `
+            <div class="bg-cream border-2 border-ink rounded-2xl p-5 shadow-book-sm flex items-center gap-4">
+                <img src="${u.profileImageUrl || 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23C4451C\'><circle cx=\'12\' cy=\'8\' r=\'4\'/><path d=\'M20 21a8 8 0 1 0-16 0\'/></svg>'}"
+                     class="w-16 h-16 rounded-full border-2 border-ink object-cover" />
+                <div class="flex-1 min-w-0">
+                    <a href="/User/Profile/${u.id}" class="font-display font-bold text-xl hover:text-ember block truncate">${u.displayName}</a>
+                    <div class="font-mono text-xs text-smoke mt-1">${u.followerCount} followers  |  ${u.recipeCount} dishes</div>
+                </div>
+                <button data-follow="${u.id}" class="bg-ember text-cream font-bold text-sm px-4 py-2 rounded-full border-2 border-ink shadow-book-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition">
+                    Follow
+                </button>
+            </div>`).join('') : '<div class="col-span-full font-mono text-smoke">No cooks registered yet.</div>';
+
+        document.querySelectorAll('[data-follow]').forEach(b => {
+            b.onclick = async () => {
+                const id = b.dataset.follow;
+                const isFollowing = b.classList.contains('bg-moss');
+                const r = await RE.post(isFollowing ? '/User/Unfollow' : '/User/Follow', { followeeId: id });
+                if (r.success) {
+                    if (isFollowing) {
+                        b.textContent = 'Follow';
+                        b.classList.replace('bg-moss', 'bg-ember');
+                        RE.toast('Unfollowed cook');
+                    } else {
+                        b.textContent = 'Following';
+                        b.classList.replace('bg-ember', 'bg-moss');
+                        RE.toast('Following cook');
+                    }
+                }
+            };
+        });
+    });
+    </script>
+}

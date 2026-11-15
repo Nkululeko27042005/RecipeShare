@@ -1,0 +1,24 @@
+﻿@{ ViewBag.Title = "Top liked"; }
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <h1 class="font-display font-black text-5xl leading-none mb-8">Top liked</h1>
+    <ol id="list" class="space-y-4"></ol>
+</div>
+@section Scripts {
+    <script>
+fetch('/Recipe/GetTopLiked?count=20', { credentials: 'same-origin' })
+    .then(r => r.json())
+    .then(items => {
+        document.getElementById('list').innerHTML = items.length ? items.map((r, i) => `
+            <li>
+                <a href="/Recipe/Details/${r.id}" class="flex items-center gap-4 bg-cream border-2 border-ink rounded-2xl p-4 shadow-book-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition">
+                    <span class="font-display font-black text-4xl text-ember w-12 text-center">${String(i+1).padStart(2,'0')}</span>
+                    <img src="${r.primaryImage || 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'><rect fill=\'%23E8C9B4\' width=\'400\' height=\'300\'/><text fill=\'%23C4451C\' font-family=\'sans-serif\' font-size=\'20\' font-weight=\'bold\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\'>Dish</text></svg>'}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'><rect fill=\'%23E8C9B4\' width=\'400\' height=\'300\'/><text fill=\'%23C4451C\' font-family=\'sans-serif\' font-size=\'20\' font-weight=\'bold\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\'>Dish</text></svg>'" class="w-16 h-16 rounded-xl border-2 border-ink object-cover" />
+                    <div class="flex-1">
+                        <h3 class="font-display font-bold text-xl">${r.title}</h3>
+                        <div class="font-mono text-xs text-smoke">by ${r.author}  |  Likes:  ${r.likeCount}</div>
+                    </div>
+                </a>
+            </li>`).join('') : '<li class="font-mono text-smoke">No recipes found yet.</li>';
+    });
+    </script>
+}

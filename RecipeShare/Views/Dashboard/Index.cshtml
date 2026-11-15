@@ -1,0 +1,202 @@
+﻿@{
+    ViewBag.Title = "Dashboard";
+}
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    <!-- Hero / greeting -->
+    <section class="mb-10 fade-up">
+        <div class="flex items-end justify-between flex-wrap gap-4">
+            <div>
+                <div class="font-mono text-xs uppercase tracking-[.25em] text-ember">Daily kitchen</div>
+                <h1 class="font-display font-black text-5xl sm:text-6xl leading-none mt-2">
+                    What's cooking,<br><span class="text-ember">@(User.Identity.IsAuthenticated ? User.Identity.Name.Split('@')[0] : "Chef")</span>?
+                </h1>
+            </div>
+            <a href="/Recipe/Create" class="inline-flex items-center gap-2 bg-moss text-cream font-bold px-6 py-3 rounded-full border-2 border-ink shadow-book hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-none transition">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+                Post a recipe
+            </a>
+        </div>
+    </section>
+
+    <!-- Recommended rail -->
+    <section class="mb-14">
+        <div class="flex items-baseline justify-between mb-4">
+            <h2 class="font-display font-bold text-3xl rule-doodle inline-block">Picked for you</h2>
+            <a href="/Recipe/TopLiked" class="font-mono text-xs uppercase tracking-widest text-ember hover:underline">See top -></a>
+        </div>
+        <div id="recommendedRail" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </section>
+
+    <!-- Two-column: main feed + sidebar -->
+    <div class="grid lg:grid-cols-[1fr_320px] gap-10">
+
+        <!-- Main: latest feed -->
+        <section>
+            <div class="flex items-baseline justify-between mb-4">
+                <h2 class="font-display font-bold text-3xl rule-doodle inline-block">Fresh from the kitchen</h2>
+                <div class="flex gap-2">
+                    <button data-tab="all" class="tab-btn tag bg-ember text-cream">All</button>
+                    <button data-tab="following" class="tab-btn tag">Following</button>
+                </div>
+            </div>
+            <div id="feedGrid" class="grid sm:grid-cols-2 gap-6"></div>
+            <div class="text-center mt-8">
+                <button id="loadMoreBtn" class="font-mono text-sm uppercase tracking-widest border-2 border-ink rounded-full px-6 py-3 hover:bg-ink hover:text-cream transition">
+                    Load more dishes
+                </button>
+            </div>
+        </section>
+
+        <!-- Sidebar -->
+        <aside class="space-y-10">
+
+            <!-- Top liked -->
+            <section>
+                <h3 class="font-display font-bold text-2xl rule-doodle inline-block mb-4">Top liked</h3>
+                <ol id="topLikedList" class="space-y-3"></ol>
+            </section>
+
+            <!-- Rising cooks -->
+            <section>
+                <h3 class="font-display font-bold text-2xl rule-doodle inline-block mb-4">Rising cooks</h3>
+                <ul id="risingUsersList" class="space-y-3"></ul>
+            </section>
+
+            <!-- Your saved -->
+            <section>
+                <div class="flex items-baseline justify-between mb-4">
+                    <h3 class="font-display font-bold text-2xl rule-doodle inline-block">Saved</h3>
+                    <a href="/Recipe/SavedRecipes" class="font-mono text-xs uppercase tracking-widest text-ember hover:underline">All -></a>
+                </div>
+                <ul id="savedList" class="space-y-3"></ul>
+            </section>
+        </aside>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+(async function initDashboard() {
+    try {
+        const res = await fetch('/Dashboard/GetDashboardData', { credentials: 'same-origin' });
+        const data = await res.json();
+
+        renderRecommended(data.recommended);
+        renderTopLiked(data.topLiked);
+        renderRising(data.risingUsers);
+        renderSaved(data.savedRecipes);
+    } catch (e) {
+        console.error("Dashboard data load error:", e);
+    }
+
+    // Load initial feed
+    loadFeed('all', 1);
+})();
+
+/* ---- Card factory ---- */
+function recipeCard(r) {
+    const imgUrl = r.primaryImage || 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'><rect fill=\'%23E8C9B4\' width=\'400\' height=\'300\'/><text fill=\'%23C4451C\' font-family=\'sans-serif\' font-size=\'20\' font-weight=\'bold\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\'>Culinary Dish</text></svg>';
+    return `
+    <a href="/Recipe/Details/${r.id}" class="recipe-card block bg-cream border-2 border-ink rounded-2xl overflow-hidden shadow-book-sm">
+        <div class="aspect-[4/3] bg-blush overflow-hidden">
+            <img src="${imgUrl}" alt="${r.title || ''}"
+                 class="w-full h-full object-cover" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'><rect fill=\'%23E8C9B4\' width=\'400\' height=\'300\'/><text fill=\'%23C4451C\' font-family=\'sans-serif\' font-size=\'20\' font-weight=\'bold\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\'>Culinary Dish</text></svg>'" />
+        </div>
+        <div class="p-4">
+            <div class="tag mb-2">${r.category || 'dish'}</div>
+            <h3 class="font-display font-bold text-xl leading-tight">${r.title || 'Untitled'}</h3>
+            <p class="text-sm text-smoke mt-1 line-clamp-2">${r.description || ''}</p>
+            <div class="flex items-center gap-3 mt-3 text-xs font-mono uppercase tracking-wider text-smoke">
+                <span class="flex items-center gap-1"><span class="text-ember">Likes: </span>${r.likeCount ?? 0}</span>
+                <span class="flex items-center gap-1">Notes: ${r.commentCount ?? 0}</span>
+                <span class="ml-auto">by ${r.author || 'Chef'}</span>
+            </div>
+        </div>
+    </a>`;
+}
+
+function renderRecommended(items) {
+    const el = document.getElementById('recommendedRail');
+    if (!items || !items.length) {
+        el.innerHTML = `<div class="col-span-full text-center text-smoke font-mono text-sm py-8 border-2 border-dashed border-ink rounded-xl">
+            Nothing yet  -  post the first recipe and set the tone.
+        </div>`;
+        return;
+    }
+    el.innerHTML = items.map(recipeCard).join('');
+}
+
+function renderTopLiked(items) {
+    const el = document.getElementById('topLikedList');
+    if (!items || !items.length) {
+        el.innerHTML = `<li class="text-sm text-smoke font-mono">No likes yet.</li>`;
+        return;
+    }
+    el.innerHTML = items.map((r, i) => `
+        <li>
+            <a href="/Recipe/Details/${r.id}" class="flex items-center gap-3 group">
+                <span class="font-display font-black text-3xl text-ember w-8 shrink-0">${String(i+1).padStart(2,'0')}</span>
+                <div class="flex-1 min-w-0">
+                    <div class="font-bold text-sm truncate group-hover:text-ember">${r.title}</div>
+                    <div class="font-mono text-xs text-smoke">Likes:  ${r.likeCount}  |  ${r.author || ''}</div>
+                </div>
+            </a>
+        </li>`).join('');
+}
+
+function renderRising(items) {
+    const el = document.getElementById('risingUsersList');
+    if (!items || !items.length) {
+        el.innerHTML = `<li class="text-sm text-smoke font-mono">No cooks yet.</li>`;
+        return;
+    }
+    el.innerHTML = items.map(u => `
+        <li class="flex items-center gap-3">
+            <img src="${u.profileImageUrl || 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23C4451C\'><circle cx=\'12\' cy=\'8\' r=\'4\'/><path d=\'M20 21a8 8 0 1 0-16 0\'/></svg>'}"
+                 class="w-9 h-9 rounded-full border-2 border-ink object-cover" alt="" />
+            <div class="flex-1 min-w-0">
+                <a href="/User/Profile/${u.id}" class="font-bold text-sm hover:text-ember truncate block">${u.displayName}</a>
+                <div class="font-mono text-xs text-smoke">${u.followerCount} followers  |  ${u.recipeCount} dishes</div>
+            </div>
+        </li>`).join('');
+}
+
+function renderSaved(items) {
+    const el = document.getElementById('savedList');
+    if (!items || !items.length) {
+        el.innerHTML = `<li class="text-sm text-smoke font-mono">Nothing saved yet.</li>`;
+        return;
+    }
+    el.innerHTML = items.map(r => `
+        <li><a href="/Recipe/Details/${r.id}" class="block hover:text-ember font-medium text-sm truncate">>  ${r.title}</a></li>
+    `).join('');
+}
+
+let feedPage = 1, feedTab = 'all';
+async function loadFeed(tab, page) {
+    const res = await fetch(`/Recipe/Feed?page=${page}&tab=${tab}`, { credentials: 'same-origin' });
+    const items = await res.json();
+    const el = document.getElementById('feedGrid');
+    if (page === 1) el.innerHTML = '';
+    el.insertAdjacentHTML('beforeend', items.map(recipeCard).join('') || (page === 1 ? `
+        <div class="col-span-full text-center text-smoke font-mono text-sm py-12 border-2 border-dashed border-ink rounded-xl">
+            The feed is empty. Be the first to post.
+        </div>` : ''));
+    document.getElementById('loadMoreBtn').style.display = items.length < 20 ? 'none' : '';
+}
+
+document.getElementById('loadMoreBtn').onclick = () => loadFeed(feedTab, ++feedPage);
+
+document.querySelectorAll('[data-tab]').forEach(btn => {
+    btn.onclick = () => {
+        document.querySelectorAll('[data-tab]').forEach(b => b.classList.remove('bg-ember','text-cream'));
+        btn.classList.add('bg-ember','text-cream');
+        feedTab = btn.dataset.tab; 
+        feedPage = 1;
+        loadFeed(feedTab, 1);
+    };
+});
+    </script>
+}
